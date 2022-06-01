@@ -1,13 +1,12 @@
 //! Virtual Machine
 
-
 use serde_derive::{
     Serialize
 };
 use std::{
     collections::{
         HashMap
-    },
+    }, rc::Rc,
 };
 
 
@@ -22,7 +21,7 @@ pub enum Value {
     Char(char),
     String(String),
     Bool(bool),
-    Symbol(Option<Value>),
+    Symbol(Rc<Value>),
     Address(Option<usize>),
 }
 
@@ -44,7 +43,10 @@ pub enum Instruction {
     Dump,                       
 }
 
+#[derive(Clone)]
+#[derive(Debug)]
 pub enum MetaData {
+    Tag(String),
 
 }
 
@@ -54,30 +56,35 @@ pub enum MetaData {
 pub enum MemoryCell {
     Instruction(Instruction),
     Value(Value),
-    MetaData(MetaData)
+    MetaData(MetaData),
+    Empty
 }
 
 /// The virtual machine
 #[derive(Clone)]
 #[derive(Debug)]
-struct RustyVM {
+pub struct RustyVM {
     pc: usize, // program counter
     running: bool,
     memory: Vec<MemoryCell>,
     stack: Vec<MemoryCell>,
-    symbol_table: HashMap<String, MemoryCell>,
-    
+    registers: Vec<MemoryCell>,
 }
 
 impl RustyVM {
-    fn new() -> Self {  
-        Self {
+    pub fn new() -> Self {
+
+        let mut vm = RustyVM {
             pc: 0,
             memory: vec![],
             stack: vec![],
-            symbol_table: HashMap::new(),
-            running: false
+            registers: vec![],
+            running: false,
+        };
+        for i in 0..16 {
+            vm.registers.push(MemoryCell::Empty)
         }
+        vm
     }
 
     pub fn run(&mut self) {
