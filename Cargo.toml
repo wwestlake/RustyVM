@@ -2,5 +2,6 @@
 
 members = [
     "rvm-console",
-    "rusty-vm"
+    "rusty-vm",
+    "rmv-asm"
 ]
