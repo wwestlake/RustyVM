@@ -7,13 +7,14 @@ use std::{
     },
 };
 
-use super::vm::{RustyVM, MemoryCell, Instruction, Value};
+use super::vm::{RustyVM, MemoryCell, Instruction, Value, Message};
 
 
 pub struct VMBuilder {
     vm: RustyVM, 
     pc: usize,
-    symbol_table: HashMap<String, usize>,
+    symbol_table: HashMap<String, Value>,
+    unresolved_label_refs: HashMap<String, usize>,    
     built: bool
 }
 
@@ -23,6 +24,7 @@ impl VMBuilder {
             vm: RustyVM::new(),
             pc: 0,
             symbol_table: HashMap::new(),
+            unresolved_label_refs: HashMap::new(),
             built: false
         }
     }
@@ -38,8 +40,27 @@ impl VMBuilder {
 
     pub fn build(&mut self) -> &mut Self {
         // reconciles all labels here
+        for (label, address) in &self.unresolved_label_refs {
+            if let Some(Value::Address(Some(actual_address))) = self.symbol_table.get(label) {
+                match self.vm.get_instruction(*address) {
+                    MemoryCell::Instruction(Instruction::Jmp(_)) => {
+                        self.vm.set_instruction(MemoryCell::Instruction(Instruction::Jmp(Value::Address(Some(*actual_address))) ), *address)
+                    },
+
+                    _ => println!("Invalid instruction at {}", &address)
+
+                }
+            } else {
+                println!("Invalid instruction at {}", &address);
+            }
+        }
 
         self.built = true;
+        self
+    }
+
+    pub fn label(&mut self, label: &str) -> &mut Self {
+        self.symbol_table.insert(String::from(label), Value::Address(Some(self.pc)));
         self
     }
 
@@ -51,6 +72,45 @@ impl VMBuilder {
 
     pub fn add(&mut self) -> &mut Self {
         self.vm.push(MemoryCell::Instruction(Instruction::Add));
+        self.pc += 1;
+        self
+    }
+
+    pub fn sub(&mut self) -> &mut Self {
+        self.vm.push(MemoryCell::Instruction(Instruction::Sub));
+        self.pc += 1;
+        self
+    }
+
+    pub fn mul(&mut self) -> &mut Self {
+        self.vm.push(MemoryCell::Instruction(Instruction::Mul));
+        self.pc += 1;
+        self
+    }
+
+    pub fn div(&mut self) -> &mut Self {
+        self.vm.push(MemoryCell::Instruction(Instruction::Div));
+        self.pc += 1;
+        self
+    }
+
+    pub fn jump(&mut self, label: &str) -> &mut Self {
+        match self.symbol_table.get(label) {
+            Some(Value::Address(Some(v))) => {
+                self.pc += 1;
+                self.vm.push(MemoryCell::Instruction(Instruction::Jmp(Value::Address(Some(*v)))));
+            },
+            _ => { 
+                self.vm.push(MemoryCell::Instruction(Instruction::Jmp(Value::Address(None))));
+                self.unresolved_label_refs.insert(label.to_string(), self.pc);
+                self.pc += 1;
+             },
+        }
+        self
+    }
+
+    pub fn out(&mut self, port: usize, message: Message) -> &mut Self {
+        self.vm.push(MemoryCell::Instruction(Instruction::Out(port, message)));
         self.pc += 1;
         self
     }
