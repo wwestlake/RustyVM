@@ -164,6 +164,10 @@ impl RustyVM {
         vm
     }
 
+    pub fn get_stack(&self) -> Vec<MemoryCell> {
+        self.stack.clone()
+    }
+
     fn handle_exception(&mut self, msg: &str) {
         println!("Exception({}): {}\nCurrent Instruction\n{:#?}", self.pc, msg, self.cur_instruction);
         self.ex_dump();

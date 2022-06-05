@@ -127,4 +127,35 @@ impl VMBuilder {
         self
     }
 
+    pub fn results(&self) -> Vec<MemoryCell> {
+        self.vm.get_stack()
+    }
+
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::rvm::{builder, vm::*};
+
+    #[test]
+    fn builder_creates_vm() {
+        let mut builder = builder::VMBuilder::new();
+        builder
+            .push(Value::I32(10))
+            .halt()
+            .build()
+            .start();
+        
+        let stack = builder.results();
+        for mem in stack {
+            match mem {
+                MemoryCell::Value(Value::I32(n)) => {
+                    assert_eq!(10, n);
+                },
+                _ => panic!("Stack does not contain pushed value")
+            }            
+        }
+    }
+
 }
